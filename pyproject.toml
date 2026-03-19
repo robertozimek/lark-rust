@@ -9,7 +9,7 @@ description = "High-performance Rust-accelerated drop-in replacement for lark's 
 requires-python = ">=3.8"
 license = "MIT"
 authors = [
-    { name = "Roberto Zimek", email = "robertozimek@users.noreply.github.com" },
+    { name = "Robert Ozimek", email = "robertozimek@users.noreply.github.com" },
 ]
 keywords = ["lark", "parser", "lalr", "rust", "performance"]
 classifiers = [
