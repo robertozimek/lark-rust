@@ -1,11 +1,43 @@
 [build-system]
-requires = ["maturin>=1.0"]
+requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [project]
 name = "lark-rust"
 version = "0.1.0"
+description = "High-performance Rust-accelerated drop-in replacement for lark's LALR parser stack"
 requires-python = ">=3.8"
+license = "MIT"
+authors = [
+    { name = "Roberto Zimek", email = "robertozimek@users.noreply.github.com" },
+]
+keywords = ["lark", "parser", "lalr", "rust", "performance"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Compilers",
+    "Topic :: Text Processing :: General",
+]
+dependencies = ["lark>=1.0"]
+
+[project.urls]
+Homepage = "https://github.com/robertozimek/lark-rust"
+Repository = "https://github.com/robertozimek/lark-rust"
+Issues = "https://github.com/robertozimek/lark-rust/issues"
 
 [tool.maturin]
 python-source = "python"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
