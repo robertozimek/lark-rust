@@ -11,6 +11,7 @@ license = "MIT"
 authors = [
     { name = "Robert Ozimek", email = "robertozimek@users.noreply.github.com" },
 ]
+readme = "README.md"
 keywords = ["lark", "parser", "lalr", "rust", "performance"]
 classifiers = [
     "Development Status :: 4 - Beta",
