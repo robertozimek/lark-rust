@@ -1,13 +1,20 @@
 from lark_rust import BasicLexer, LexerThread
 
+
 def test_lexer_thread_basic():
+    from lark.lark import LexerConf
+    from lark.lexer import TerminalDef, PatternStr
+    import re
+
     terminals = [
-        ("WORD", r"[a-zA-Z]+", 1),
-        ("NUM", r"[0-9]+", 1),
+        TerminalDef("WORD", PatternStr("hello"), 1),
+        TerminalDef("NUM", PatternStr("123"), 1),
     ]
-    lexer = BasicLexer(terminals, [], {})
-    thread = LexerThread(lexer, "hello123")
-    
+    conf = LexerConf(terminals, re, ignore=[], callbacks={})
+    lexer = BasicLexer(conf)
+    thread = LexerThread.from_text(lexer, "hello123")
+
     token = thread.next_token(None)
     assert token.value == "hello"
     assert token.type == "WORD"
+
