@@ -34,7 +34,7 @@ impl LexerState {
                 && self.line_ctr.newline_char == other_ls.line_ctr.newline_char;
             return Ok(eq.into_pyobject(py)?.to_owned().into_any().unbind());
         }
-        Ok(py.NotImplemented().into())
+        Ok(py.NotImplemented())
     }
 
     fn __copy__(&self) -> Self {

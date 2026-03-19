@@ -26,6 +26,7 @@ pub struct Token {
 impl Token {
     #[new]
     #[pyo3(signature = (type_, value, start_pos=-1, line=-1, column=-1, end_line=None, end_column=None, end_pos=None))]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         type_: String,
         value: String,
@@ -144,6 +145,6 @@ impl Token {
             let eq = self.value.as_str() == other_str;
             return Ok(eq.into_pyobject(py)?.to_owned().into_any().unbind());
         }
-        Ok(py.NotImplemented().into())
+        Ok(py.NotImplemented())
     }
 }

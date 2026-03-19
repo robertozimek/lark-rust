@@ -64,6 +64,6 @@ impl LineCounter {
                 self.char_pos == other_lc.char_pos && self.newline_char == other_lc.newline_char;
             return Ok(eq.into_pyobject(py)?.to_owned().into_any().unbind());
         }
-        Ok(py.NotImplemented().into())
+        Ok(py.NotImplemented())
     }
 }

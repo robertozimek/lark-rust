@@ -56,7 +56,7 @@ impl Scanner {
                         let matched = &text[pos..pos + match_end];
                         // Find which group matched (groups are 1-indexed)
                         for (i, name) in self.group_to_terminal.iter().enumerate() {
-                            if caps.get(i + 1).map_or(false, |m| m.start() == 0) {
+                            if caps.get(i + 1).is_some_and(|m| m.start() == 0) {
                                 return Some((matched, name.clone()));
                             }
                         }
