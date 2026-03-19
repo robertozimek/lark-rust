@@ -3,6 +3,7 @@ use crate::token::Token;
 use pyo3::prelude::*;
 
 #[pyclass]
+#[derive(Clone)]
 pub struct LexerState {
     #[pyo3(get)]
     pub text: String,

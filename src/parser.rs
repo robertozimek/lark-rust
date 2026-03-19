@@ -271,7 +271,8 @@ pub struct LALR_Parser {
 #[pymethods]
 impl LALR_Parser {
     #[new]
-    pub fn new(parse_conf: &ParseConf) -> Self {
+    pub fn new(parse_conf: &ParseConf, debug: bool, strict: bool) -> Self {
+        let _ = (debug, strict);
         LALR_Parser {
             parse_table: parse_conf.parse_table.clone(),
             callbacks: parse_conf
