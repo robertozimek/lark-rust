@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 
 #[pyclass]
+#[derive(Clone)]
 pub struct LineCounter {
     #[pyo3(get)]
     pub char_pos: i32,

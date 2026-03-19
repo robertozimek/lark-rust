@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 
 #[pyclass]
+#[derive(Clone)]
 pub struct Token {
     #[pyo3(get, name = "type")]
     pub type_: String,
