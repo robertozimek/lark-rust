@@ -5,11 +5,13 @@ mod lexer;
 mod lexer_state;
 mod lexer_thread;
 mod line_counter;
+mod parser;
 mod scanner;
 mod token;
 
 use lexer::BasicLexer;
 use lexer_thread::LexerThread;
+use parser::CompiledParseTable;
 use scanner::Scanner;
 use token::Token;
 
@@ -21,12 +23,13 @@ fn lark_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Scanner>()?;
     m.add_class::<BasicLexer>()?;
     m.add_class::<LexerThread>()?;
+    m.add_class::<CompiledParseTable>()?;
 
     let plugins = PyDict::new(m.py());
     plugins.set_item("BasicLexer", m.getattr("BasicLexer")?)?;
     plugins.set_item("LexerThread", m.getattr("LexerThread")?)?;
     m.add("plugins", plugins)?;
-    m.add("__version__", "0.1.0")?;
+    m.add("__version__", "0.1.1")?;
 
     Ok(())
 }

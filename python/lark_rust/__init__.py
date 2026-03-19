@@ -10,6 +10,7 @@ from .lark_rust import (
     LexerThread as RustLexerThread,
     LineCounter,
     Scanner,
+    CompiledParseTable,
     __version__,
 )
 
@@ -121,7 +122,8 @@ class ContextualLexer:
 # ---------------------------------------------------------------------------
 
 class ParseConf:
-    __slots__ = ('parse_table', 'callbacks', 'start', 'start_state', 'end_state', 'states')
+    __slots__ = ('parse_table', 'callbacks', 'start', 'start_state', 'end_state',
+                 'states', '_compiled')
 
     def __init__(self, parse_table, callbacks, start):
         self.parse_table = parse_table
@@ -130,6 +132,7 @@ class ParseConf:
         self.states = parse_table.states
         self.callbacks = callbacks
         self.start = start
+        self._compiled = CompiledParseTable(self)
 
 
 class ParserState:
@@ -163,52 +166,11 @@ class ParserState:
         )
 
     def feed_token(self, token, is_end=False):
-        state_stack = self.state_stack
-        value_stack = self.value_stack
-        states = self.parse_conf.states
-        end_state = self.parse_conf.end_state
-        callbacks = self.parse_conf.callbacks
-
-        while True:
-            state = state_stack[-1]
-            try:
-                action, arg = states[state][token.type]
-            except KeyError:
-                expected = {s for s in states[state].keys() if s.isupper()}
-                raise UnexpectedToken(
-                    token, expected, state=self, interactive_parser=None
-                )
-
-            assert arg != end_state
-
-            if action is Shift:
-                assert not is_end
-                state_stack.append(arg)
-                value_stack.append(
-                    token if token.type not in callbacks
-                    else callbacks[token.type](token)
-                )
-                return
-            else:
-                # Reduce
-                rule = arg
-                size = len(rule.expansion)
-                if size:
-                    s = value_stack[-size:]
-                    del state_stack[-size:]
-                    del value_stack[-size:]
-                else:
-                    s = []
-
-                value = callbacks[rule](s)
-
-                _action, new_state = states[state_stack[-1]][rule.origin.name]
-                assert _action is Shift
-                state_stack.append(new_state)
-                value_stack.append(value)
-
-                if is_end and state_stack[-1] == end_state:
-                    return value_stack[-1]
+        compiled = self.parse_conf._compiled
+        return compiled.feed_token(
+            self.state_stack, self.value_stack,
+            token, token.type, is_end, self,
+        )
 
 
 class _Parser:
@@ -230,9 +192,26 @@ class _Parser:
     def parse_from_state(self, state, last_token=None):
         try:
             token = last_token
-            for token in state.lexer.lex(state):
-                assert token is not None
-                state.feed_token(token)
+            lexer = state.lexer
+
+            # Inline the lexer loop: call next_token directly instead of
+            # using the lex() generator. Avoids generator overhead.
+            if hasattr(lexer, 'state'):
+                # LexerThread path
+                inner_lexer = lexer.lexer
+                lexer_state = lexer.state
+                try:
+                    while True:
+                        token = inner_lexer.next_token(lexer_state, state)
+                        state.feed_token(token)
+                except EOFError:
+                    pass
+            else:
+                # ContextualLexer path — uses lex() which needs
+                # lexer_state + parser_state together
+                for token in lexer.lex(state):
+                    assert token is not None
+                    state.feed_token(token)
 
             end_token = (
                 Token.new_borrow_pos('$END', '', token)
