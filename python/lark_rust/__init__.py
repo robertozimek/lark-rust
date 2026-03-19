@@ -154,12 +154,12 @@ class ParserState:
     def __copy__(self):
         return self.copy()
 
-    def copy(self):
+    def copy(self, deepcopy_values=True):
         return type(self)(
             self.parse_conf,
             self.lexer,
             copy(self.state_stack),
-            deepcopy(self.value_stack),
+            deepcopy(self.value_stack) if deepcopy_values else copy(self.value_stack),
         )
 
     def feed_token(self, token, is_end=False):

@@ -380,3 +380,35 @@ def test_unexpected_char():
         assert False, "Should have raised"
     except UnexpectedCharacters:
         pass  # Expected
+
+
+def test_unexpected_token_str():
+    """Test that str() on UnexpectedToken works (requires ParserState.copy(deepcopy_values=...)).
+
+    Regression: lark 1.3.1's InteractiveParser.copy() calls
+    parser_state.copy(deepcopy_values=...) but lark-rust's ParserState.copy()
+    did not accept that kwarg, causing a TypeError when str() was called on
+    UnexpectedToken (which internally copies the interactive parser to compute
+    accepted tokens).
+    """
+    from lark.exceptions import UnexpectedToken
+    parser = Lark(
+        '''
+        start: pair+
+        pair: NAME "=" NAME
+        NAME: /[a-z]+/
+        %ignore " "
+    ''',
+        parser="lalr",
+        lexer="basic",
+        _plugins=lark_rust.plugins,
+    )
+    try:
+        # After parsing "a = b", the parser sees "c" (NAME) and expects "=" next
+        parser.parse("a = b c")
+        assert False, "Should have raised"
+    except UnexpectedToken as e:
+        # This used to blow up because ParserState.copy() didn't accept deepcopy_values.
+        # str(e) internally calls InteractiveParser.copy() -> parser_state.copy(deepcopy_values=...)
+        msg = str(e)
+        assert "Unexpected token" in msg
