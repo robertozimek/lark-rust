@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "lark-rust"
-version = "0.2.0"
+version = "0.2.1"
 description = "High-performance Rust-accelerated drop-in replacement for lark's LALR parser stack"
 requires-python = ">=3.8"
 license = "MIT"
