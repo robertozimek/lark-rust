@@ -209,7 +209,7 @@ impl CompiledParseTable {
                     value_stack.del_slice(start, vstack_len)?;
                     slice
                 } else {
-                    PyList::empty(py).into()
+                    PyList::empty(py)
                 };
 
                 let value = rule.callback.call1(py, (&children,))?;
