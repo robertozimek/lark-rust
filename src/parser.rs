@@ -143,6 +143,7 @@ impl CompiledParseTable {
     /// Takes state_stack and value_stack as mutable Python lists,
     /// the token, and is_end flag.
     /// Returns None on shift, or the final value on successful end.
+    #[allow(clippy::too_many_arguments)]
     fn feed_token(
         &self,
         state_stack: &Bound<'_, PyList>,
