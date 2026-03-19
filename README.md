@@ -26,9 +26,9 @@ Measured on Apple M4 Pro, Python 3.13, median of 20 iterations:
 
 | Workload | lark | lark-cython | lark-rust | vs lark | vs cython |
 |---|---|---|---|---|---|
-| JSON (3 KB nested) | 4.02 ms | 2.39 ms | **2.04 ms** | 2.0x | 1.2x |
-| Arithmetic (deep) | 3.22 ms | 1.98 ms | **1.29 ms** | 2.5x | 1.5x |
-| Lexer (10k words) | 28.66 ms | 16.50 ms | **11.44 ms** | 2.5x | 1.4x |
+| JSON (3 KB nested) | 4.16 ms | 2.45 ms | **1.73 ms** | 2.4x | 1.4x |
+| Arithmetic (deep) | 3.08 ms | 2.00 ms | **1.18 ms** | 2.6x | 1.7x |
+| Lexer (10k words) | 28.41 ms | 16.89 ms | **10.61 ms** | 2.7x | 1.6x |
 
 Reproduce with `python benchmarks/bench.py` (install `lark-cython` for the three-way comparison).
 
