@@ -35,12 +35,9 @@ jobs:
           # Linux aarch64
           - os: ubuntu-latest
             target: aarch64
-          # macOS x86_64
-          - os: macos-13
-            target: x86_64
-          # macOS Apple Silicon
+          # macOS universal2 (x86_64 + arm64 fat binary)
           - os: macos-latest
-            target: aarch64
+            target: universal2-apple-darwin
           # Windows x86_64
           - os: windows-latest
             target: x64
