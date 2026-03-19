@@ -191,13 +191,23 @@ class _Parser:
 
     def parse_from_state(self, state, last_token=None):
         try:
-            token = last_token
             lexer = state.lexer
+            compiled = state.parse_conf._compiled
 
-            # Inline the lexer loop: call next_token directly instead of
-            # using the lex() generator. Avoids generator overhead.
+            if (last_token is None
+                    and hasattr(lexer, 'state')
+                    and isinstance(lexer.lexer, BasicLexer)):
+                # Fast path: LexerThread with BasicLexer — run entire
+                # lex+parse loop in a single Rust call.
+                return compiled.parse_loop(
+                    lexer.lexer, lexer.state,
+                    state.state_stack, state.value_stack,
+                    state,
+                )
+
+            # Fallback: ContextualLexer or resume with last_token
+            token = last_token
             if hasattr(lexer, 'state'):
-                # LexerThread path
                 inner_lexer = lexer.lexer
                 lexer_state = lexer.state
                 try:
@@ -207,8 +217,6 @@ class _Parser:
                 except EOFError:
                     pass
             else:
-                # ContextualLexer path — uses lex() which needs
-                # lexer_state + parser_state together
                 for token in lexer.lex(state):
                     assert token is not None
                     state.feed_token(token)

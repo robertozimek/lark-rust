@@ -2,6 +2,10 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PySet, PyTuple};
 use std::collections::HashMap;
 
+use crate::lexer::BasicLexer;
+use crate::lexer_state::LexerState;
+use crate::token::Token;
+
 /// A pre-compiled rule: stores the expansion size and origin name
 /// so we never touch Python Rule objects during parsing.
 struct CompiledRule {
@@ -145,6 +149,109 @@ impl CompiledParseTable {
     /// Returns None on shift, or the final value on successful end.
     #[allow(clippy::too_many_arguments)]
     fn feed_token(
+        &self,
+        state_stack: &Bound<'_, PyList>,
+        value_stack: &Bound<'_, PyList>,
+        token: &Bound<'_, PyAny>,
+        token_type: &str,
+        is_end: bool,
+        parser_state: &Bound<'_, PyAny>,
+        py: Python<'_>,
+    ) -> PyResult<Option<Py<PyAny>>> {
+        self.feed_token_inner(
+            state_stack,
+            value_stack,
+            token,
+            token_type,
+            is_end,
+            parser_state,
+            py,
+        )
+    }
+
+    /// Run the full lex-parse loop in Rust for the BasicLexer path.
+    /// Calls next_token and feed_token in a tight Rust loop, only
+    /// crossing back to Python for callbacks.
+    #[allow(clippy::too_many_arguments)]
+    fn parse_loop(
+        &self,
+        lexer_obj: &Bound<'_, PyAny>,
+        lexer_state_obj: &Bound<'_, PyAny>,
+        state_stack: &Bound<'_, PyList>,
+        value_stack: &Bound<'_, PyList>,
+        parser_state: &Bound<'_, PyAny>,
+        py: Python<'_>,
+    ) -> PyResult<Py<PyAny>> {
+        let mut last_token: Option<Token> = None;
+
+        // Tight lex-parse loop: next_token + feed_token without Python overhead
+        loop {
+            let result = {
+                let mut lexer = lexer_obj.downcast::<BasicLexer>()?.borrow_mut();
+                let mut lexer_state = lexer_state_obj.downcast::<LexerState>()?.borrow_mut();
+                lexer.next_token(&mut lexer_state, parser_state, py)
+            };
+            match result {
+                Ok(token) => {
+                    let token_type = token.type_.clone();
+                    let token_py = token.clone().into_pyobject(py)?.into_any();
+                    last_token = Some(token);
+                    self.feed_token_inner(
+                        state_stack,
+                        value_stack,
+                        &token_py,
+                        &token_type,
+                        false,
+                        parser_state,
+                        py,
+                    )?;
+                }
+                Err(e) if e.is_instance_of::<pyo3::exceptions::PyEOFError>(py) => {
+                    break;
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            }
+        }
+
+        // Feed $END token
+        let end_token = if let Some(ref lt) = last_token {
+            Token::new(
+                "$END".to_string(),
+                String::new(),
+                lt.start_pos,
+                lt.line,
+                lt.column,
+                lt.end_line,
+                lt.end_column,
+                lt.end_pos,
+            )
+        } else {
+            Token::new("$END".to_string(), String::new(), 0, 1, 1, None, None, None)
+        };
+        let end_token_py = end_token.into_pyobject(py)?.into_any();
+
+        let result = self.feed_token_inner(
+            state_stack,
+            value_stack,
+            &end_token_py,
+            "$END",
+            true,
+            parser_state,
+            py,
+        )?;
+
+        result.ok_or_else(|| {
+            pyo3::exceptions::PyRuntimeError::new_err("parse_loop: feed_token($END) returned None")
+        })
+    }
+}
+
+impl CompiledParseTable {
+    /// Shared feed_token implementation used by both feed_token and parse_loop.
+    #[allow(clippy::too_many_arguments)]
+    fn feed_token_inner(
         &self,
         state_stack: &Bound<'_, PyList>,
         value_stack: &Bound<'_, PyList>,
