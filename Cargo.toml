@@ -3,4 +3,16 @@ name = "lark-rust"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "lark_rust"
+crate-type = ["cdylib"]
+
 [dependencies]
+pyo3 = { version = "0.25", features = ["extension-module"] }
+regex = "1.10"
+ahash = "0.8"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
