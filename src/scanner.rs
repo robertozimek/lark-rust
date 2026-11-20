@@ -6,6 +6,9 @@ pub struct Scanner {
     combined_re: Option<Regex>,
     individual_patterns: Vec<(String, Regex)>,
     group_to_terminal: Vec<String>,
+    /// Capture-group index of each terminal in `combined_re`. Terminal
+    /// patterns may contain their own groups, so indices are not contiguous.
+    group_indices: Vec<usize>,
 }
 
 impl Scanner {
@@ -27,16 +30,33 @@ impl Scanner {
             if let Ok(re) = Regex::new(pattern) {
                 individual_patterns.push((name.clone(), re));
             }
-            pattern_parts.push(format!("({})", pattern));
+            pattern_parts.push(format!("(?P<{}>{})", name, pattern));
             group_to_terminal.push(name.clone());
         }
 
         let combined_re = Regex::new(&pattern_parts.join("|")).ok();
 
+        let group_indices = match combined_re {
+            Some(ref re) => {
+                let names: Vec<Option<&str>> = re.capture_names().collect();
+                group_to_terminal
+                    .iter()
+                    .map(|n| {
+                        names
+                            .iter()
+                            .position(|g| *g == Some(n.as_str()))
+                            .unwrap_or(0)
+                    })
+                    .collect()
+            }
+            None => Vec::new(),
+        };
+
         Ok(Scanner {
             combined_re,
             individual_patterns,
             group_to_terminal,
+            group_indices,
         })
     }
 
@@ -54,9 +74,9 @@ impl Scanner {
                     if full.start() == 0 {
                         let match_end = full.end();
                         let matched = &text[pos..pos + match_end];
-                        // Find which group matched (groups are 1-indexed)
-                        for (i, name) in self.group_to_terminal.iter().enumerate() {
-                            if caps.get(i + 1).is_some_and(|m| m.start() == 0) {
+                        // Find which terminal's group matched
+                        for (name, &idx) in self.group_to_terminal.iter().zip(&self.group_indices) {
+                            if caps.get(idx).is_some_and(|m| m.start() == 0) {
                                 return Some((matched, name.clone()));
                             }
                         }
