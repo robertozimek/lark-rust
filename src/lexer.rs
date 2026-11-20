@@ -10,6 +10,12 @@ pub struct TerminalDef {
     pub name: String,
     pub pattern: String,
     pub priority: i32,
+    /// Sort keys matching lark's `BasicLexer` ordering.
+    pub max_width: u64,
+    pub value_len: usize,
+    /// The original lark `TerminalDef`, passed to `_create_unless` so that
+    /// `PatternStr`/`PatternRE` distinctions and flags are preserved.
+    pub py_def: Py<PyAny>,
 }
 
 fn pattern_has_newline(pattern: &str) -> bool {
@@ -39,10 +45,19 @@ fn extract_terminals(conf: &Bound<'_, PyAny>, py: Python<'_>) -> PyResult<Vec<Te
         let regex_result: Py<PyAny> = to_regexp_fn.call0()?.into();
         let pattern_str: String = regex_result.extract(py)?;
         let priority: i32 = t.getattr("priority")?.extract()?;
+        // max_width may be sre's MAXREPEAT; saturate rather than fail.
+        let max_width: u64 = pattern_obj
+            .getattr("max_width")?
+            .extract()
+            .unwrap_or(u64::MAX);
+        let value_len: usize = pattern_obj.getattr("value")?.len()?;
         terminals.push(TerminalDef {
             name,
             pattern: pattern_str,
             priority,
+            max_width,
+            value_len,
+            py_def: t.unbind(),
         });
     }
     Ok(terminals)
@@ -78,6 +93,7 @@ pub struct BasicLexer {
     re_module: Py<PyAny>,
     g_regex_flags: i32,
     use_bytes: bool,
+    #[pyo3(get)]
     terminals_by_name: Py<PyAny>,
 }
 
@@ -120,10 +136,13 @@ impl BasicLexer {
         }
 
         let mut terminals_sorted = terminals;
+        // Same order as lark: (-priority, -max_width, -len(value), name)
         terminals_sorted.sort_by(|a, b| {
-            let a_len = a.pattern.len() as i32;
-            let b_len = b.pattern.len() as i32;
-            (-a.priority, -b_len, &a.name).cmp(&(-b.priority, -a_len, &b.name))
+            b.priority
+                .cmp(&a.priority)
+                .then(b.max_width.cmp(&a.max_width))
+                .then(b.value_len.cmp(&a.value_len))
+                .then(a.name.cmp(&b.name))
         });
 
         let newline_types: HashSet<String> = terminals_sorted
@@ -158,15 +177,9 @@ impl BasicLexer {
         let lark_lexer = py.import("lark.lexer")?;
         let create_unless_fn = lark_lexer.getattr("_create_unless")?;
         let call_chain_cls = lark_lexer.getattr("CallChain")?;
-        let pattern_re_cls = lark_lexer.getattr("PatternRE")?;
-        let terminal_def_cls = lark_lexer.getattr("TerminalDef")?;
 
-        let py_terminals = pyo3::types::PyList::empty(py);
-        for t in &self.terminals {
-            let pattern_obj = pattern_re_cls.call1((&t.pattern,))?;
-            let td = terminal_def_cls.call1((&t.name, pattern_obj, t.priority))?;
-            py_terminals.append(td)?;
-        }
+        let py_terminals =
+            pyo3::types::PyList::new(py, self.terminals.iter().map(|t| t.py_def.bind(py)))?;
 
         let result = create_unless_fn.call1((
             py_terminals,

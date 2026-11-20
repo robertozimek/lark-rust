@@ -29,7 +29,7 @@ fn lark_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     plugins.set_item("BasicLexer", m.getattr("BasicLexer")?)?;
     plugins.set_item("LexerThread", m.getattr("LexerThread")?)?;
     m.add("plugins", plugins)?;
-    m.add("__version__", "0.1.1")?;
+    m.add("__version__", "0.2.2")?;
 
     Ok(())
 }
