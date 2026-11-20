@@ -34,10 +34,14 @@ jobs:
         env:
           CARGO_PROFILE_RELEASE_LTO: "false"
           CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
+        # bash with -e so a failed build stops here on Windows too, and
+        # --no-index so we never fall back to the PyPI release.
+        shell: bash
         run: |
+          set -e
           pip install maturin lark pytest
           maturin build --release
-          pip install --find-links target/wheels lark-rust
+          pip install --no-index --find-links target/wheels lark-rust
       - name: Run tests
         run: pytest tests/ -v
 
