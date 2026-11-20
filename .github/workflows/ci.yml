@@ -28,7 +28,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: Build and install
+        # Full LTO is only needed for release wheels; skip it to speed up CI.
+        env:
+          CARGO_PROFILE_RELEASE_LTO: "false"
+          CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
         run: |
           pip install maturin lark pytest
           maturin build --release
@@ -44,6 +49,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
       - name: Cargo clippy
         run: cargo clippy --all-targets -- -D warnings
       - name: Cargo fmt check
